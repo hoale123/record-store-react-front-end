@@ -1,90 +1,103 @@
-import { useState, useEffect } from 'react';
-import './Records.css';
-import RecordCard from './RecordCard.js';
-import RecordForm from './RecordForm.js';
+import { useState, useEffect } from "react";
+import "./Records.css";
+import RecordCard from "./RecordCard.js";
+import RecordForm from "./RecordForm.js";
 
 function Records() {
+  const [customers, setCustomers] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [scopedCustomer, setScopedCustomer] = useState({});
+  const [error, setError] = useState();
 
-    const [records, setRecords] = useState([]);
-    const [showForm, setShowForm] = useState(false);
-    const [scopedRecord, setScopedRecord] = useState({});
-    const [error, setError] = useState();
+  useEffect(() => {
+    console.log("test");
+    fetch("http://localhost:8080/customers")
+      .then((response) => response.json())
+      .then((result) => {
+        setCustomers(result);
+        console.log(result);
+      })
+      .catch(console.log);
+  }, []);
 
-    useEffect(() => {
-        fetch("http://localhost:8080/records")
-        .then(res => res.json())
-        .then(result => setRecords(result))
-        .catch(console.log)
-    },[])
-    // when showForm is true will be re render when a request it call.
+  function addClick() {
+    setScopedCustomer({
+      firstName: "",
+      lastName: "",
+      street: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      level: "",
+    });
+    setShowForm(true);
+  }
 
-    function addClick() {
-        setScopedRecord({id:0, "title":"", "artist":"", "year":""})
+  function notify({ action, customer, error }) {
+    if (error) {
+      setError(error);
+      setShowForm(false);
+      return;
+    }
+
+    switch (action) {
+      case "add":
+        setCustomers([...customers, customer]);
+        break;
+      case "edit":
+        setCustomers(
+          customers.map((e) => {
+            if (e.id === customer.id) {
+              return customer;
+            }
+            return e;
+          })
+        );
+        break;
+      case "edit-form":
+        setScopedCustomer(customer);
         setShowForm(true);
+        return;
+      case "delete":
+        setCustomers(customers.filter((e) => e.id !== customer.id));
+        break;
     }
 
-    function notify({ action, record, error }) {
-        if (error) {
-            setError(error);
-            setShowForm(false);
-            return;
-        }
-        switch(action){
-            case "add":
-                setRecords([...records, record])
-                break;
-            case "delete":
-                //all record but the one clicked is shown
-                setRecords(records.filter(r => r.id !== record.id));
-                break;
-            case "edit":
-                //go through records; if id match; return new record.
-                // return with new array of element with only the records = to r.id;
-                setRecords(records.map(r => {
-                    if(r.id !== record.id){
-                        return r;
-                    }else {
-                        return record;
-                    }
-                }))
-            //set the records list again
-                break;
-            case "edit-form":
-                setShowForm(true);
-                setScopedRecord(record);
-                //break; would go to return setShowForm(false)
-                return;
-            default:
-                console.log("Bad action for notify.")
-        }
-        setError("");
-        setShowForm(false);
-    }
+    setError("");
+    setShowForm(false);
+  }
 
-    if (showForm) {
-        return <RecordForm record={scopedRecord} notify={notify} />
-    }
+  if (showForm) {
+    return <RecordForm customer={scopedCustomer} notify={notify} />;
+  }
 
-    return (
-        <>
-            {error && <div className="alert alert-danger">{error}</div>}
-            <div>
-                <h1 id='recordTitle'>Records</h1>
-                <button className="btn btn-primary" type="button" onClick={addClick}>Add a Record</button>
-                <table id='records'>
-                    <tr>
-                        <th>Artist</th>
-                        <th>Album</th>
-                        <th>Year</th>
-                        <th>Actions</th>
-                    </tr>
-                    <tbody>
-                        {records.map(r => <RecordCard key={r.id} record={r} notify={notify} />)}
-                    </tbody>
-                </table>
-            </div>
-        </>
-    )
+  return (
+    <>
+      {error && <div className="alert alert-danger">{error}</div>}
+      <div>
+        <h1 id="recordTitle">Customers</h1>
+        <button className="btn btn-primary" type="button" onClick={addClick}>
+          Add a Customer
+        </button>
+        <table id="records">
+          <tr>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Street</th>
+            <th>City</th>
+            <th>State</th>
+            <th>ZipCode</th>
+            <th>Level</th>
+          </tr>
+          <tbody>
+            {customers.map((c) => (
+              <RecordCard key={c.id} customer={c} notify={notify} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
 }
 
 export default Records;
